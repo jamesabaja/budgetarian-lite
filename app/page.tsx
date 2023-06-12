@@ -1,113 +1,253 @@
-import Image from 'next/image'
+"use client";
+
+import { useEffect, useState } from "react";
+import moment from "moment";
 
 export default function Home() {
+  const initialTransactions: any[] = [];
+  const [amount, setAmount] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [expenseName, setExpenseName] = useState("");
+  const [transactions, setTransactions] = useState(initialTransactions);
+  const [expenseAmount, setExpenseAmount] = useState("");
+  const [dailyAllocation, setDailyAllocation] = useState("");
+
+  useEffect(() => {
+    setEndDate(localStorage?.getItem("endDate") || "");
+    setAmount(localStorage?.getItem("amount") || "");
+    setDailyAllocation(localStorage?.getItem("dailyAllocation") || "");
+    setTransactions(JSON.parse(localStorage?.getItem("transactions") || "[]"));
+  }, []);
+
+  const saveDetails = () => {
+    localStorage?.setItem("endDate", endDate);
+    localStorage?.setItem("amount", amount);
+    localStorage?.setItem(
+      "dailyAllocation",
+      (parseInt(amount) / (moment(endDate).diff(moment(), "days") + 1)).toFixed(
+        2
+      )
+    );
+
+    setDailyAllocation(
+      (parseInt(amount) / (moment(endDate).diff(moment(), "days") + 1)).toFixed(
+        2
+      )
+    );
+  };
+
+  const resetDetails = () => {
+    localStorage?.removeItem("endDate");
+    localStorage?.removeItem("amount");
+    localStorage?.removeItem("dailyAllocation");
+    localStorage?.removeItem("transactions");
+
+    setDailyAllocation("");
+    setTransactions([]);
+  };
+
+  const addNewExpense = () => {
+    let tempTransactions = [
+      ...transactions,
+      {
+        date: moment().format("YYYY-MM-DD"),
+        name: expenseName,
+        amount: expenseAmount,
+      },
+    ];
+
+    localStorage?.setItem("transactions", JSON.stringify(tempTransactions));
+    setTransactions(tempTransactions);
+    setExpenseName("");
+    setExpenseAmount("");
+  };
+
+  const removeExpense = (index: any) => {
+    let tempTransactions = [...transactions];
+
+    tempTransactions.splice(index, 1);
+    localStorage?.setItem("transactions", JSON.stringify(tempTransactions));
+    setTransactions(tempTransactions);
+  };
+
+  if (!!dailyAllocation) {
+    let pastTransactions = transactions.filter(
+      (transaction: any) => transaction.date !== moment().format("YYYY-MM-DD")
+    );
+    let transactionsToday = transactions.filter(
+      (transaction: any) => transaction.date === moment().format("YYYY-MM-DD")
+    );
+    let dailyConsumed = transactionsToday.reduce(
+      (totalConsumed: any, currentTransaction: any) =>
+        totalConsumed + parseFloat(currentTransaction.amount),
+      0
+    );
+    return (
+      <section className="bg-gray-50 dark:bg-gray-900">
+        <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:min-h-screen min-h-screen">
+          <h1 className="text-3xl font-medium mb-5">Welcome, James!</h1>
+          <p className="text-4xl font-medium text-center">
+            {(parseFloat(dailyAllocation) - dailyConsumed).toFixed(2)}
+          </p>
+          <p className="text-xl font-regular text-center">remaining</p>
+          <div className="w-full rounded-lg shadow md:mt-0 sm:max-w-md xl:p-0">
+            <div className="p-6 sm:p-8">
+              {transactionsToday.map((transaction: any, index: any) => (
+                <div
+                  key={index}
+                  className="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700 mb-4"
+                >
+                  <div className="p-4 flex align-middle justify-between">
+                    <div>
+                      <div>
+                        <div className="text-lg font-semibold">
+                          {transaction.name}
+                        </div>
+                        <div>{transaction.amount}</div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-red-500 dark:text-red-500 dark:hover:text-white dark:hover:bg-red-500 dark:focus:ring-red-800 my-2"
+                      onClick={() => removeExpense(index)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <div className="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
+                <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
+                  <div>
+                    <label
+                      htmlFor="expenseName"
+                      className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                    >
+                      Name
+                    </label>
+                    <input
+                      name="expenseName"
+                      id="expenseName"
+                      className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                      placeholder="Food"
+                      required={true}
+                      value={expenseName}
+                      onChange={(event) => setExpenseName(event.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="expenseAmount"
+                      className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                    >
+                      Amount
+                    </label>
+                    <input
+                      type="number"
+                      name="expenseAmount"
+                      id="expenseAmount"
+                      className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                      placeholder="1,000"
+                      required={true}
+                      value={expenseAmount}
+                      onChange={(event) => setExpenseAmount(event.target.value)}
+                    />
+                  </div>
+                  <button
+                    className="w-full text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-800 dark:hover:bg-primary-700 dark:focus:ring-primary-800 mt-4"
+                    onClick={addNewExpense}
+                  >
+                    Add Expense
+                  </button>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="w-full text-blue-700 hover:text-white border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-4 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:hover:bg-blue-500 dark:focus:ring-blue-800 mt-4"
+                onClick={resetDetails}
+              >
+                Reset Details
+              </button>
+              {pastTransactions.map((transaction: any, index: any) => (
+                <div
+                  key={index}
+                  className="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700 mb-4"
+                >
+                  <div className="p-4 flex align-middle justify-between">
+                    <div>
+                      <div>
+                        <div className="text-lg font-semibold">
+                          {transaction.name}
+                        </div>
+                        <div>{transaction.amount}</div>
+                      </div>
+                    </div>
+                    <div>{moment(transaction.date).format("MMM DD")}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <section className="bg-gray-50 dark:bg-gray-900">
+      <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
+        <h1 className="text-3xl font-medium mb-10">Welcome, James!</h1>
+        <div className="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
+          <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
+            <div>
+              <label
+                htmlFor="endDate"
+                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              >
+                End Date
+              </label>
+              <input
+                type="date"
+                name="endDate"
+                id="endDate"
+                className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                placeholder="Doe"
+                required={true}
+                value={endDate}
+                onChange={(event) => setEndDate(event.target.value)}
+                min={moment().format("YYYY-MM-DD")}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="amount"
+                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              >
+                Amount
+              </label>
+              <input
+                type="number"
+                name="amount"
+                id="amount"
+                className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                placeholder="1,000"
+                required={true}
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+              />
+            </div>
+            <button
+              className="w-full text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-800 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
+              onClick={saveDetails}
+            >
+              Save
+            </button>
+            {/* {!!endDate ? (
+              <div>{(moment(endDate).diff(moment(), "days") + 1)} days</div>
+            ) : null} */}
+          </div>
         </div>
       </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800 hover:dark:bg-opacity-30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore the Next.js 13 playground.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
+    </section>
+  );
 }
